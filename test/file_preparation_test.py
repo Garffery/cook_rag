@@ -14,4 +14,4 @@ dataPath = "../data/cook/"
 preparationer = DataPreparationModule(dataPath)
 print(preparationer)
 res = preparationer.load_documents()
-# print(res)
+print(res)
