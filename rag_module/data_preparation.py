@@ -1,9 +1,12 @@
 #数据预处理
+import uuid
+from ast import Try
 import hashlib
 from pathlib import Path
 from typing import List, Dict
 import logging
 from langchain_core.documents import Document
+from langchain.text_splitter import MarkdownHeaderTextSplitter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -27,7 +30,7 @@ class DataPreparationModule:
     def __init__(self, data_path:str):
         self.data_path = data_path
         self.documents: List[Document] = []  # 父文档
-        self.chuck: List[Document] = []     # 子文档
+        self.chunks: List[Document] = []     # 子文档
         self.parent_child_map: Dict[str, str] = {}  # 子块ID -> 父文档ID的映射
 
     def load_documents(self) -> List[Document]:
@@ -104,3 +107,75 @@ class DataPreparationModule:
             doc.metadata['difficulty'] = '非常简单'
         else:
             doc.metadata['difficulty'] = '未知'
+
+    def chunk_documents(self) -> List[Document]:
+        logger.info(f"正在对文档进行分块...")
+        if not self.documents:
+            ValueError("请先加载文档")
+        
+        # 使用Markdown标题分割器
+        chunks = self._markdown_header_split()
+        # 为每个chunk添加基础元数据
+        for i, chunk in enumerate(chunks):
+            if 'chunk_id' not in chunk.metadata:
+                # 如果没有chunk_id（比如分割失败的情况），则生成一个
+                chunk.metadata['chunk_id'] = str(uuid.uuid4())
+            chunk.metadata['batch_index'] = i  # 在当前批次中的索引
+            chunk.metadata['chunk_size'] = len(chunk.page_content)
+
+        self.chunks = chunks
+        logger.info(f"Markdown分块完成，共生成 {len(chunks)} 个chunk")
+        return chunks
+
+    
+    def _markdown_header_split(self) -> List[Document]:
+        """
+        使用Markdown标题分割文档
+        """
+        # 定义要分割的标题层级
+        headers_to_split_on = [
+            ("#", "主标题"),      # 菜品名称
+            ("##", "二级标题"),   # 必备原料、计算、操作等
+            ("###", "三级标题")   # 简易版本、复杂版本等
+        ]
+        markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on, strip_headers=False)
+        all_chunks = []
+        for doc in self.documents:
+            try:
+                content_preview = doc.page_content[:200]
+                has_headers = any(line.strip().startswith('#') for line in content_preview.split('\n'))
+                if not has_headers:
+                    logger.warning(f"文档 {doc.metadata.get('dish_name', '未知')} 内容中没有发现Markdown标题")
+                    logger.debug(f"内容预览: {content_preview}")
+                # 对每个文档进行Markdown分割
+                md_chunks = markdown_splitter.split_text(doc.page_content)
+
+                logger.debug(f"文档 {doc.metadata.get('dish_name', '未知')} 分割成 {len(md_chunks)} 个chunk")
+
+                # 如果没有分割成功，说明文档可能没有标题结构
+                if len(md_chunks) <= 1:
+                    logger.warning(f"文档 {doc.metadata.get('dish_name', '未知')} 未能按标题分割，可能缺少标题结构")
+
+                # 为每个子块建立与父文档的关系
+                parent_id = doc.metadata["parent_id"]
+
+                for i, chunk in enumerate(md_chunks):
+                    # 为子块分配唯一ID
+                    child_id = str(uuid.uuid4())
+
+                    # 合并原文档元数据和新的标题元数据
+                    chunk.metadata.update(doc.metadata)
+                    chunk.metadata.update({
+                        "chunk_id": child_id,
+                        "parent_id": parent_id,
+                        "doc_type": "child",  # 标记为子文档
+                        "chunk_index": i      # 在父文档中的位置
+                    })
+
+                    # 建立父子映射关系
+                    self.parent_child_map[child_id] = parent_id
+                all_chunks.extend(md_chunks)
+            except Exception as e:
+                logger.warning(f"对文档 {doc.metadata.get('source', '')} 进行Markdown标题分割失败: {e}")
+        logger.info(f"Markdown结构分割完成，生成 {len(all_chunks)} 个结构化块")
+        return all_chunks

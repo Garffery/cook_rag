@@ -13,5 +13,8 @@ dataPath = "../data/cook/"
 
 preparationer = DataPreparationModule(dataPath)
 print(preparationer)
-res = preparationer.load_documents()
-print(res)
+preparationer.load_documents()
+res = preparationer.chunk_documents()
+for chunk in res:
+    print("===="*30)
+    print(chunk)
