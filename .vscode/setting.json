@@ -1,0 +1,20 @@
+{
+    "python.pythonPath": "D:\\software\\anaconda\\envs\\cook-rag-1\\python.exe",
+    "python.defaultInterpreterPath": "D:\\software\\anaconda\\envs\\cook-rag-1\\python.exe",
+    "python.terminal.activateEnvironment": false,
+    "code-runner.executorMap": {
+        "python": "D:\\software\\anaconda\\envs\\cook-rag-1\\python.exe -u -X utf8"
+    },
+    "code-runner.runInTerminal": false,
+    "code-runner.fileDirectoryAsCwd": true,
+    "terminal.integrated.profiles.windows": {
+        "PowerShell (NoProfile)": {
+            "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": [
+                "-NoLogo",
+                "-NoProfile"
+            ]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell (NoProfile)"
+}

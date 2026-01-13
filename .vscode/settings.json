@@ -1,0 +1,9 @@
+{
+  "python.defaultInterpreterPath": "%USERPROFILE%\\miniconda3\\envs\\cook-rag-1\\python.exe",
+  "code-runner.executorMap": {
+    "python": "D:\\software\\anaconda\\envs\\cook-rag-1\\python.exe -u -X utf8"
+  },
+  "code-runner.runInTerminal": false,
+  "code-runner.saveAllFilesBeforeRun": true,
+  "code-runner.showExecutionMessage": false
+}
